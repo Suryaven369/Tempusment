@@ -5,12 +5,12 @@ import { useAuth } from "@/hooks/use-auth";
 import { getRecentAppointments } from "@/lib/firebase-collections";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { format } from "date-fns";
 import { Loader2, MoreVertical } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { Button } from "@/components/ui/button";
 import { PaymentStatusDialog } from "./appointments/payment-status-dialog";
-import { EditAppointmentDialog } from "./appointments/edit-appointment-dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -127,12 +127,6 @@ export function RecentAppointments() {
     }
   };
 
-  const handleAppointmentUpdated = (updatedAppointment: Appointment) => {
-    setAppointments(prev =>
-      prev.map(app => app.id === updatedAppointment.id ? updatedAppointment : app)
-    );
-  };
-
   if (loading) {
     return (
       <div className="flex items-center justify-center py-8">
@@ -160,7 +154,7 @@ export function RecentAppointments() {
   }
 
   return (
-    <>
+    <ScrollArea className="h-[600px] pr-4">
       <div className="space-y-4">
         {appointments.map((appointment) => (
           <div
@@ -205,10 +199,6 @@ export function RecentAppointments() {
                   )}
                 </div>
               </div>
-              <EditAppointmentDialog
-                appointment={appointment}
-                onAppointmentUpdated={handleAppointmentUpdated}
-              />
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" size="icon">
@@ -280,6 +270,6 @@ export function RecentAppointments() {
           }}
         />
       )}
-    </>
+    </ScrollArea>
   );
 }
