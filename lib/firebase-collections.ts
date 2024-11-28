@@ -658,3 +658,37 @@ export async function updatePayment(id: string, data: Partial<Payment>): Promise
     throw error;
   }
 }
+
+
+// Add this function to handle Firestore errors
+function handleFirestoreError(error: FirestoreError, operation: string) {
+  console.error(`Error in ${operation}:`, error);
+  throw new Error(`Failed to ${operation}: ${error.message}`);
+}
+
+export async function getClientPayments(clientId: string): Promise<Payment[]> {
+  try {
+    if (!auth.currentUser) {
+      throw new Error('Authentication required');
+    }
+
+    const paymentsRef = getUserCollection('payments');
+    const snapshot = await getDocs(
+      query(
+        paymentsRef,
+        where('clientId', '==', clientId),
+        orderBy('createdAt', 'desc')
+      )
+    );
+
+    return snapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data(),
+      createdAt: doc.data().createdAt?.toDate?.()?.toISOString() || new Date().toISOString(),
+      updatedAt: doc.data().updatedAt?.toDate?.()?.toISOString() || new Date().toISOString(),
+    })) as Payment[];
+  } catch (error) {
+    console.error('Error fetching client payments:', error);
+    return [];
+  }
+}
