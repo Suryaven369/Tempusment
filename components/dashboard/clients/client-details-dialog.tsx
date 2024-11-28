@@ -11,9 +11,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { ClientDialog } from "./client-dialog";
 import { NewAppointmentDialog } from "../new-appointment-dialog";
-import { getClientAppointments } from "@/lib/firebase-collections";
-import { format } from "date-fns";
-import type { Client, Appointment } from "@/types";
+import { ClientTimeline } from "./client-history/timeline";
+import { getClientAppointments, getClientPayments } from "@/lib/firebase-collections";
+import type { Client, Appointment, Payment } from "@/types";
+import { useToast } from "@/components/ui/use-toast";
 
 interface ClientDetailsDialogProps {
   client: Client;
@@ -29,30 +30,41 @@ export function ClientDetailsDialog({
   onClientUpdated,
 }: ClientDetailsDialogProps) {
   const [appointments, setAppointments] = useState<Appointment[]>([]);
+  const [payments, setPayments] = useState<Payment[]>([]);
   const [loading, setLoading] = useState(true);
+  const { toast } = useToast();
 
   useEffect(() => {
-    async function fetchAppointments() {
-      if (!client.id) return;
+    async function fetchData() {
+      if (!client.id || !open) return;
       
+      setLoading(true);
       try {
-        const fetchedAppointments = await getClientAppointments(client.id);
-        setAppointments(fetchedAppointments);
+        const [fetchedAppointments, fetchedPayments] = await Promise.all([
+          getClientAppointments(client.id),
+          getClientPayments(client.id)
+        ]);
+        
+        setAppointments(fetchedAppointments || []);
+        setPayments(fetchedPayments || []);
       } catch (error) {
-        console.error("Error fetching client appointments:", error);
+        console.error("Error fetching client data:", error);
+        toast({
+          title: "Error",
+          description: "Failed to load client history. Please try again.",
+          variant: "destructive",
+        });
       } finally {
         setLoading(false);
       }
     }
 
-    if (open) {
-      fetchAppointments();
-    }
-  }, [client.id, open]);
+    fetchData();
+  }, [client.id, open, toast]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[600px] h-[80vh]">
+      <DialogContent className="sm:max-w-[800px] h-[90vh]">
         <DialogHeader>
           <DialogTitle className="flex items-center justify-between">
             <span>{client.name}</span>
@@ -63,13 +75,13 @@ export function ClientDetailsDialog({
           </DialogTitle>
         </DialogHeader>
 
-        <Tabs defaultValue="info" className="mt-4">
+        <Tabs defaultValue="history" className="mt-4">
           <TabsList>
             <TabsTrigger value="info">Information</TabsTrigger>
-            <TabsTrigger value="appointments">Appointments</TabsTrigger>
+            <TabsTrigger value="history">History & Timeline</TabsTrigger>
           </TabsList>
 
-          <ScrollArea className="h-[calc(80vh-12rem)] mt-4">
+          <ScrollArea className="h-[calc(90vh-12rem)] mt-4">
             <TabsContent value="info" className="space-y-4">
               <div>
                 <h4 className="font-semibold">Contact Information</h4>
@@ -104,43 +116,18 @@ export function ClientDetailsDialog({
               )}
             </TabsContent>
 
-            <TabsContent value="appointments">
-              <div className="space-y-4">
-                {loading ? (
-                  <p>Loading appointments...</p>
-                ) : appointments.length === 0 ? (
-                  <p>No appointments found.</p>
-                ) : (
-                  appointments.map((appointment) => (
-                    <div
-                      key={appointment.id}
-                      className="flex items-center justify-between p-4 rounded-lg border"
-                    >
-                      <div>
-                        <p className="font-medium">{appointment.serviceName}</p>
-                        <p className="text-sm text-muted-foreground">
-                          {format(
-                            new Date(`${appointment.date}T${appointment.time}`),
-                            "PPP p"
-                          )}
-                        </p>
-                      </div>
-                      <div className="text-right">
-                        <p className="font-medium">${appointment.price}</p>
-                        <p
-                          className={`text-sm ${
-                            appointment.status === "completed"
-                              ? "text-green-500"
-                              : "text-yellow-500"
-                          }`}
-                        >
-                          {appointment.status}
-                        </p>
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
+            <TabsContent value="history">
+              {loading ? (
+                <div className="flex items-center justify-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                </div>
+              ) : (
+                <ClientTimeline 
+                  appointments={appointments}
+                  payments={payments}
+                  clientName={client.name}
+                />
+              )}
             </TabsContent>
           </ScrollArea>
         </Tabs>
