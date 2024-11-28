@@ -1,16 +1,13 @@
 "use client";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Overview } from "@/components/dashboard/overview";
 import { RecentAppointments } from "@/components/dashboard/recent-appointments";
 import { NewAppointmentDialog } from "@/components/dashboard/new-appointment-dialog";
 import { StatsCard } from "@/components/dashboard/stats-card";
 import { useDashboardStats } from "@/hooks/use-dashboard-stats";
 import { format } from "date-fns";
-import { Suspense } from "react";
-import { Loader2 } from "lucide-react";
 
-function DashboardContent() {
+export default function DashboardPage() {
   const { stats, loading } = useDashboardStats();
   const today = format(new Date(), "EEEE, MMMM d, yyyy");
 
@@ -51,38 +48,14 @@ function DashboardContent() {
         />
       </div>
 
-      <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-7">
-        <Card className="col-span-1 md:col-span-2 lg:col-span-4">
-          <CardHeader>
-            <CardTitle>Overview</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Overview />
-          </CardContent>
-        </Card>
-        <Card className="col-span-1 md:col-span-2 lg:col-span-3">
-          <CardHeader>
-            <CardTitle>Recent Appointments</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <RecentAppointments />
-          </CardContent>
-        </Card>
-      </div>
+      <Card className="col-span-1">
+        <CardHeader>
+          <CardTitle>Recent Appointments</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <RecentAppointments />
+        </CardContent>
+      </Card>
     </div>
-  );
-}
-
-export default function DashboardPage() {
-  return (
-    <Suspense
-      fallback={
-        <div className="flex items-center justify-center h-[200px]">
-          <Loader2 className="h-8 w-8 animate-spin" />
-        </div>
-      }
-    >
-      <DashboardContent />
-    </Suspense>
   );
 }
