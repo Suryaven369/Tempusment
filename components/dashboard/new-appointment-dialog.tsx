@@ -24,6 +24,7 @@ import { Command } from "cmdk";
 import { Plus, Check } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { useAuth } from "@/hooks/use-auth";
+import { TimePicker } from "@/components/ui/time-picker";
 import type { Appointment, Client, Service, Staff } from "@/types";
 
 interface NewAppointmentDialogProps {
@@ -114,9 +115,29 @@ export function NewAppointmentDialog({
     setShowDropdown(true);
   };
 
+  const validateForm = () => {
+    const selectedDate = new Date(`${formData.date}T${formData.time}`);
+    const now = new Date();
+
+    if (selectedDate < now) {
+      toast({
+        title: "Invalid Date",
+        description: "Cannot schedule appointments in the past",
+        variant: "destructive",
+      });
+      return false;
+    }
+
+    return true;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    if (!validateForm()) {
+      return;
+    }
+
     if (!user) {
       toast({
         title: "Error",
@@ -151,6 +172,7 @@ export function NewAppointmentDialog({
         price: selectedService.price,
         notes: formData.notes,
         status: "scheduled",
+        paymentStatus: "pending",
       };
 
       await createAppointment(appointmentData);
@@ -330,18 +352,17 @@ export function NewAppointmentDialog({
                 type="date"
                 value={formData.date}
                 onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+                min={new Date().toISOString().split('T')[0]}
                 required
               />
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="time">Time</Label>
-              <Input
-                id="time"
-                type="time"
+              <TimePicker
                 value={formData.time}
-                onChange={(e) => setFormData({ ...formData, time: e.target.value })}
-                required
+                onChange={(time) => setFormData({ ...formData, time: time })}
+                interval={15}
               />
             </div>
 
