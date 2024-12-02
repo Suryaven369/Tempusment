@@ -91,3 +91,14 @@ export interface Break {
   start: string;
   end: string;
 }
+
+export interface BlockedTime {
+  id?: string;
+  startTime: string;
+  endTime: string;
+  reason?: string;
+  recurrence: 'none' | 'daily' | 'weekly' | 'monthly';
+  isAllDay: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+}
