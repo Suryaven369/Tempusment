@@ -692,3 +692,34 @@ export async function getClientPayments(clientId: string): Promise<Payment[]> {
     return [];
   }
 }
+
+
+
+// Blocked Times
+export async function getAllBlockedTimes(): Promise<BlockedTime[]> {
+  try {
+    const blockedTimesRef = getUserCollection('blockedTimes');
+    const snapshot = await getDocs(query(blockedTimesRef, orderBy('startTime')));
+    return snapshot.docs.map(doc => convertDocument<BlockedTime>(doc));
+  } catch (error) {
+    console.error('Error fetching blocked times:', error);
+    return [];
+  }
+}
+
+export async function createBlockedTime(data: Partial<BlockedTime>): Promise<BlockedTime> {
+  const blockedTimesRef = getUserCollection('blockedTimes');
+  const preparedData = prepareForFirestore({
+    ...data,
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp()
+  });
+  const docRef = await addDoc(blockedTimesRef, preparedData);
+  const docSnap = await getDoc(docRef);
+  return convertDocument<BlockedTime>(docSnap);
+}
+
+export async function deleteBlockedTime(id: string): Promise<void> {
+  const blockedTimeRef = doc(getUserCollection('blockedTimes'), id);
+  await deleteDoc(blockedTimeRef);
+}
