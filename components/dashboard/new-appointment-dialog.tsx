@@ -19,13 +19,14 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { createAppointment, getAllClients, getAllServices, getAllStaff } from "@/lib/firebase-collections";
+import { TimeSlotPicker } from "@/components/ui/time-slot-picker";
+import { createAppointment, getAllClients, getAllServices, getAllStaff, getAllBlockedTimes, getAllAppointments } from "@/lib/firebase-collections";
+import { isTimeSlotBlocked, getAvailableTimeSlots, type TimeSlot } from "@/lib/appointment-validation";
 import { Command } from "cmdk";
 import { Plus, Check } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { useAuth } from "@/hooks/use-auth";
-import { TimePicker } from "@/components/ui/time-picker";
-import type { Appointment, Client, Service, Staff } from "@/types";
+import type { Appointment, Client, Service, Staff, BlockedTime } from "@/types";
 
 interface NewAppointmentDialogProps {
   onAppointmentAdded?: () => void;
@@ -45,6 +46,10 @@ export function NewAppointmentDialog({
   const [staffMembers, setStaffMembers] = useState<Staff[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [showDropdown, setShowDropdown] = useState(false);
+  const [blockedTimes, setBlockedTimes] = useState<BlockedTime[]>([]);
+  const [existingAppointments, setExistingAppointments] = useState<Appointment[]>([]);
+  const [availableSlots, setAvailableSlots] = useState<TimeSlot[]>([]);
+  const [selectedService, setSelectedService] = useState<Service | null>(null);
   const { toast } = useToast();
   const { user } = useAuth();
 
@@ -61,27 +66,6 @@ export function NewAppointmentDialog({
   });
 
   useEffect(() => {
-    async function fetchData() {
-      try {
-        const [fetchedClients, fetchedServices, fetchedStaff] = await Promise.all([
-          getAllClients(),
-          getAllServices(),
-          getAllStaff()
-        ]);
-        setClients(fetchedClients);
-        setServices(fetchedServices);
-        setStaffMembers(fetchedStaff.filter(staff => staff.active));
-      } catch (error) {
-        console.error("Error fetching data:", error);
-      }
-    }
-
-    if (open) {
-      fetchData();
-    }
-  }, [open]);
-
-  useEffect(() => {
     if (preselectedClient) {
       setFormData(prev => ({
         ...prev,
@@ -93,11 +77,77 @@ export function NewAppointmentDialog({
     }
   }, [preselectedClient]);
 
-  const filteredClients = clients.filter(client =>
-    client.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    client.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    client.phone.includes(searchQuery)
-  );
+  useEffect(() => {
+    async function fetchData() {
+      if (!open) return;
+      
+      try {
+        const [
+          fetchedClients, 
+          fetchedServices, 
+          fetchedStaff,
+          fetchedBlockedTimes,
+          fetchedAppointments
+        ] = await Promise.all([
+          getAllClients(),
+          getAllServices(),
+          getAllStaff(),
+          getAllBlockedTimes(),
+          getAllAppointments()
+        ]);
+        setClients(fetchedClients);
+        setServices(fetchedServices);
+        setStaffMembers(fetchedStaff.filter(staff => staff.active));
+        setBlockedTimes(fetchedBlockedTimes);
+        setExistingAppointments(fetchedAppointments);
+      } catch (error) {
+        console.error("Error fetching data:", error);
+      }
+    }
+
+    fetchData();
+  }, [open]);
+
+  useEffect(() => {
+    if (formData.date && selectedService?.duration) {
+      const slots = getAvailableTimeSlots(
+        formData.date,
+        selectedService.duration,
+        blockedTimes,
+        existingAppointments
+      );
+      setAvailableSlots(slots);
+    }
+  }, [formData.date, selectedService, blockedTimes, existingAppointments]);
+
+  const handleServiceSelect = (serviceId: string) => {
+    const service = services.find(s => s.id === serviceId);
+    setSelectedService(service || null);
+    setFormData(prev => ({ ...prev, serviceId }));
+  };
+
+  const validateTimeSlot = () => {
+    if (!formData.date || !formData.time || !selectedService) return true;
+
+    const { blocked, reason } = isTimeSlotBlocked(
+      formData.date,
+      formData.time,
+      selectedService.duration,
+      blockedTimes,
+      existingAppointments
+    );
+
+    if (blocked) {
+      toast({
+        title: "Invalid Time Slot",
+        description: reason || "This time slot is not available for booking. Please select a different date/time.",
+        variant: "destructive",
+      });
+      return false;
+    }
+
+    return true;
+  };
 
   const handleClientSelect = (client: Client) => {
     setFormData(prev => ({
@@ -111,30 +161,10 @@ export function NewAppointmentDialog({
     setShowDropdown(false);
   };
 
-  const handleSearchFocus = () => {
-    setShowDropdown(true);
-  };
-
-  const validateForm = () => {
-    const selectedDate = new Date(`${formData.date}T${formData.time}`);
-    const now = new Date();
-
-    if (selectedDate < now) {
-      toast({
-        title: "Invalid Date",
-        description: "Cannot schedule appointments in the past",
-        variant: "destructive",
-      });
-      return false;
-    }
-
-    return true;
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!validateForm()) {
+    if (!validateTimeSlot()) {
       return;
     }
 
@@ -195,9 +225,7 @@ export function NewAppointmentDialog({
         notes: "",
       });
 
-      if (onAppointmentAdded) {
-        onAppointmentAdded();
-      }
+      onAppointmentAdded?.();
     } catch (error: any) {
       console.error("Error adding appointment:", error);
       toast({
@@ -210,9 +238,11 @@ export function NewAppointmentDialog({
     }
   };
 
-  if (!user) {
-    return null;
-  }
+  const filteredClients = clients.filter(client =>
+    client.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    client.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    client.phone.includes(searchQuery)
+  );
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -239,7 +269,7 @@ export function NewAppointmentDialog({
                     setSearchQuery(e.target.value);
                     setShowDropdown(true);
                   }}
-                  onFocus={handleSearchFocus}
+                  onFocus={() => setShowDropdown(true)}
                   placeholder="Search clients..."
                   className="w-full"
                 />
@@ -309,7 +339,7 @@ export function NewAppointmentDialog({
               <Label htmlFor="service">Service</Label>
               <Select
                 value={formData.serviceId}
-                onValueChange={(value) => setFormData({ ...formData, serviceId: value })}
+                onValueChange={handleServiceSelect}
                 required
               >
                 <SelectTrigger>
@@ -357,14 +387,16 @@ export function NewAppointmentDialog({
               />
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="time">Time</Label>
-              <TimePicker
-                value={formData.time}
-                onChange={(time) => setFormData({ ...formData, time: time })}
-                interval={15}
-              />
-            </div>
+            {formData.date && selectedService && (
+              <div className="space-y-2">
+                <Label>Available Time Slots</Label>
+                <TimeSlotPicker
+                  slots={availableSlots}
+                  selectedTime={formData.time}
+                  onTimeSelected={(time) => setFormData({ ...formData, time })}
+                />
+              </div>
+            )}
 
             <div className="space-y-2">
               <Label htmlFor="notes">Notes (Optional)</Label>
