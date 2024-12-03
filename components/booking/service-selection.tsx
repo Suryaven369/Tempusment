@@ -1,86 +1,67 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Loader2, Check } from "lucide-react";
-import { getAllServices } from "@/lib/firebase-collections";
-import type { Service } from "@/types";
+import { useState } from "react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Service } from "@/types";
 
 interface ServiceSelectionProps {
-  userId: string;
-  onNext: () => void;
+  services: Service[];
+  onServiceSelected: (serviceId: string) => void;
 }
 
-export function ServiceSelection({ userId, onNext }: ServiceSelectionProps) {
-  const [loading, setLoading] = useState(true);
-  const [services, setServices] = useState<Service[]>([]);
+export function ServiceSelection({ services, onServiceSelected }: ServiceSelectionProps) {
   const [selectedService, setSelectedService] = useState<string | null>(null);
 
-  useEffect(() => {
-    async function fetchServices() {
-      try {
-        const fetchedServices = await getAllServices();
-        setServices(fetchedServices.filter(service => service.active));
-      } catch (error) {
-        console.error("Error fetching services:", error);
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    fetchServices();
-  }, []);
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center py-8">
-        <Loader2 className="h-8 w-8 animate-spin" />
-      </div>
-    );
-  }
+  const handleServiceSelect = (serviceId: string) => {
+    setSelectedService(serviceId);
+    onServiceSelected(serviceId);
+  };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
+      <div>
+        <h2 className="text-2xl font-bold">Select a Service</h2>
+        <p className="text-muted-foreground">
+          Choose the service you'd like to book
+        </p>
+      </div>
+
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {services.map((service) => (
           <Card
             key={service.id}
-            className={`cursor-pointer transition-colors ${
+            className={`cursor-pointer transition-all ${
               selectedService === service.id
                 ? "border-primary"
                 : "hover:border-primary/50"
             }`}
-            onClick={() => setSelectedService(service.id)}
+            onClick={() => service.id && handleServiceSelect(service.id)}
           >
             <CardContent className="p-6">
               <div className="flex items-start justify-between">
                 <div>
-                  <h3 className="font-medium">{service.name}</h3>
-                  <p className="text-sm text-muted-foreground mt-1">
+                  <CardTitle className="text-xl">{service.name}</CardTitle>
+                  <CardDescription className="mt-2">
                     {service.description}
+                  </CardDescription>
+                </div>
+                <div className="text-right">
+                  <p className="text-xl font-bold">${service.price}</p>
+                  <p className="text-sm text-muted-foreground">
+                    {service.duration} mins
                   </p>
                 </div>
-                {selectedService === service.id && (
-                  <Check className="h-5 w-5 text-primary" />
-                )}
-              </div>
-              <div className="mt-4 flex items-center justify-between text-sm">
-                <span>{service.duration} mins</span>
-                <span className="font-medium">${service.price}</span>
               </div>
             </CardContent>
           </Card>
         ))}
       </div>
-
-      <Button
-        className="w-full md:w-auto"
-        disabled={!selectedService}
-        onClick={onNext}
-      >
-        Continue
-      </Button>
     </div>
   );
 }
