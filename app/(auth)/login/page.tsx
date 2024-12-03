@@ -1,86 +1,89 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { signInWithEmailAndPassword } from "firebase/auth";
-//import { auth } from "@/lib/firebase";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { useToast } from "@/components/ui/use-toast";
-import Link from "next/link";
+import { initializeApp, getApps, type FirebaseApp } from 'firebase/app';
+import { 
+  getAuth, 
+  connectAuthEmulator, 
+  browserLocalPersistence, 
+  setPersistence,
+  type Auth
+} from 'firebase/auth';
+import { 
+  getFirestore, 
+  initializeFirestore,
+  connectFirestoreEmulator,
+  CACHE_SIZE_UNLIMITED,
+  enableIndexedDbPersistence,
+  type Firestore
+} from 'firebase/firestore';
 
-export default function LoginPage() {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [loading, setLoading] = useState(false);
-  const router = useRouter();
-  const { toast } = useToast();
+const firebaseConfig = {
+  apiKey: "AIzaSyAwCBdpCbeM0j2EahwSlok3cNVWv_THCJI",
+  authDomain: "tempusbook-aa90d.firebaseapp.com",
+  projectId: "tempusbook-aa90d",
+  storageBucket: "tempusbook-aa90d.appspot.com",
+  messagingSenderId: "458840005020",
+  appId: "1:458840005020:web:0e38b41705a98e5e091059",
+  measurementId: "G-3WWLMG80Z8"
+};
 
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
+let app: FirebaseApp;
+let auth: Auth;
+let db: Firestore;
 
+async function initializeFirebase() {
+  if (!getApps().length) {
     try {
-      await signInWithEmailAndPassword(auth, email, password);
-      router.push("/dashboard");
-    } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive",
+      // Initialize Firebase app
+      app = initializeApp(firebaseConfig);
+
+      // Initialize Auth with persistence
+      auth = getAuth(app);
+      await setPersistence(auth, browserLocalPersistence);
+
+      // Initialize Firestore with settings for better offline support
+      db = initializeFirestore(app, {
+        cacheSizeBytes: CACHE_SIZE_UNLIMITED,
+        experimentalForceLongPolling: true,
       });
-    } finally {
-      setLoading(false);
+
+      // Enable offline persistence for Firestore
+      if (typeof window !== 'undefined') {
+        try {
+          await enableIndexedDbPersistence(db);
+        } catch (err: any) {
+          if (err.code === 'failed-precondition') {
+            console.warn('Multiple tabs open, persistence enabled in first tab only');
+          } else if (err.code === 'unimplemented') {
+            console.warn('Browser doesn\'t support persistence');
+          }
+        }
+      }
+
+      // Only initialize emulators if explicitly enabled
+      if (process.env.NEXT_PUBLIC_USE_FIREBASE_EMULATOR === 'true') {
+        connectAuthEmulator(auth, 'http://localhost:9099', { disableWarnings: true });
+        connectFirestoreEmulator(db, 'localhost', 8080);
+      }
+    } catch (error) {
+      console.error('Error initializing Firebase:', error);
+      if (!app) app = initializeApp(firebaseConfig);
+      if (!auth) auth = getAuth(app);
+      if (!db) {
+        db = initializeFirestore(app, {
+          cacheSizeBytes: CACHE_SIZE_UNLIMITED,
+          experimentalForceLongPolling: true,
+        });
+      }
     }
-  };
-
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-background">
-      <div className="w-full max-w-md p-8 space-y-6 bg-card rounded-lg shadow-lg">
-        <div className="space-y-2 text-center">
-          <h1 className="text-3xl font-bold">Welcome back</h1>
-          <p className="text-muted-foreground">Sign in to your account</p>
-        </div>
-
-        <form onSubmit={handleLogin} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="email">Email</Label>
-            <Input
-              id="email"
-              type="email"
-              placeholder="name@example.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="password">Password</Label>
-            <Input
-              id="password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-            />
-          </div>
-          <Button type="submit" className="w-full" disabled={loading}>
-            {loading ? "Signing in..." : "Sign in"}
-          </Button>
-        </form>
-        <div className="text-center text-sm">
-          <Link href="/forgot-password" className="text-primary hover:underline">
-            Forgot password?
-          </Link>
-          <div className="mt-2">
-            Don&apos;t have an account?{" "}
-            <Link href="/register" className="text-primary hover:underline">
-              Sign up
-            </Link>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
+  } else {
+    app = getApps()[0];
+    auth = getAuth(app);
+    db = getFirestore(app);
+  }
 }
+
+// Initialize Firebase immediately
+initializeFirebase();
+
+export { app, auth, db };
