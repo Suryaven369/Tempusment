@@ -1,27 +1,67 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Card,
   CardContent,
   CardDescription,
-  CardHeader,
   CardTitle,
 } from "@/components/ui/card";
 import { Service } from "@/types";
+import { getAllServices } from "@/lib/firebase-collections";
+import { useToast } from "@/components/ui/use-toast";
 
 interface ServiceSelectionProps {
-  services: Service[];
-  onServiceSelected: (serviceId: string) => void;
+  userId: string;
+  onNext: () => void;
 }
 
-export function ServiceSelection({ services, onServiceSelected }: ServiceSelectionProps) {
+export function ServiceSelection({ userId, onNext }: ServiceSelectionProps) {
+  const [services, setServices] = useState<Service[]>([]);
   const [selectedService, setSelectedService] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const { toast } = useToast();
+
+  useEffect(() => {
+    async function fetchServices() {
+      try {
+        const fetchedServices = await getAllServices();
+        setServices(fetchedServices);
+      } catch (error) {
+        console.error("Error fetching services:", error);
+        toast({
+          title: "Error",
+          description: "Failed to load services. Please try again.",
+          variant: "destructive",
+        });
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchServices();
+  }, [toast]);
 
   const handleServiceSelect = (serviceId: string) => {
     setSelectedService(serviceId);
-    onServiceSelected(serviceId);
+    onNext();
   };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-8">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
+  if (services.length === 0) {
+    return (
+      <div className="text-center py-8">
+        <p className="text-muted-foreground">No services available.</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4">
