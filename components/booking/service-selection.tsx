@@ -1,32 +1,36 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import {
   Card,
   CardContent,
   CardDescription,
   CardTitle,
 } from "@/components/ui/card";
-import { Service } from "@/types";
-import { getAllServices } from "@/lib/firebase-collections";
+import { Button } from "@/components/ui/button";
+import { Loader2 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
+import { useBooking } from "@/lib/contexts/booking-context";
+import { getBusinessServices } from "@/lib/collections/services";
+import { cn } from "@/lib/utils";
+import { formatCurrency, formatDuration } from "@/lib/utils";
+import type { Service } from "@/types";
 
 interface ServiceSelectionProps {
   userId: string;
-  onNext: () => void;
 }
 
-export function ServiceSelection({ userId, onNext }: ServiceSelectionProps) {
+export function ServiceSelection({ userId }: ServiceSelectionProps) {
   const [services, setServices] = useState<Service[]>([]);
-  const [selectedService, setSelectedService] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const { state, dispatch } = useBooking();
   const { toast } = useToast();
 
   useEffect(() => {
     async function fetchServices() {
       try {
-        const fetchedServices = await getAllServices();
-        setServices(fetchedServices);
+        const fetchedServices = await getBusinessServices(userId);
+        setServices(fetchedServices.filter(service => service.active));
       } catch (error) {
         console.error("Error fetching services:", error);
         toast({
@@ -40,17 +44,17 @@ export function ServiceSelection({ userId, onNext }: ServiceSelectionProps) {
     }
 
     fetchServices();
-  }, [toast]);
+  }, [userId, toast]);
 
-  const handleServiceSelect = (serviceId: string) => {
-    setSelectedService(serviceId);
-    onNext();
+  const handleServiceSelect = (service: Service) => {
+    dispatch({ type: "SELECT_SERVICE", service });
+    dispatch({ type: "NEXT_STEP" });
   };
 
   if (loading) {
     return (
       <div className="flex items-center justify-center py-8">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        <Loader2 className="h-8 w-8 animate-spin" />
       </div>
     );
   }
@@ -63,8 +67,18 @@ export function ServiceSelection({ userId, onNext }: ServiceSelectionProps) {
     );
   }
 
+  // Group services by category
+  const servicesByCategory = services.reduce((acc, service) => {
+    const category = service.category || "Other";
+    if (!acc[category]) {
+      acc[category] = [];
+    }
+    acc[category].push(service);
+    return acc;
+  }, {} as Record<string, Service[]>);
+
   return (
-    <div className="space-y-4">
+    <div className="space-y-8">
       <div>
         <h2 className="text-2xl font-bold">Select a Service</h2>
         <p className="text-muted-foreground">
@@ -72,36 +86,38 @@ export function ServiceSelection({ userId, onNext }: ServiceSelectionProps) {
         </p>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {services.map((service) => (
-          <Card
-            key={service.id}
-            className={`cursor-pointer transition-all ${
-              selectedService === service.id
-                ? "border-primary"
-                : "hover:border-primary/50"
-            }`}
-            onClick={() => service.id && handleServiceSelect(service.id)}
-          >
-            <CardContent className="p-6">
-              <div className="flex items-start justify-between">
-                <div>
-                  <CardTitle className="text-xl">{service.name}</CardTitle>
-                  <CardDescription className="mt-2">
-                    {service.description}
-                  </CardDescription>
-                </div>
-                <div className="text-right">
-                  <p className="text-xl font-bold">${service.price}</p>
-                  <p className="text-sm text-muted-foreground">
-                    {service.duration} mins
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+      {Object.entries(servicesByCategory).map(([category, categoryServices]) => (
+        <div key={category} className="space-y-4">
+          <h3 className="text-lg font-semibold capitalize">{category}</h3>
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {categoryServices.map((service) => (
+              <Card
+                key={service.id}
+                className={cn(
+                  "cursor-pointer transition-all hover:border-primary/50",
+                  state.selectedService?.id === service.id && "border-primary"
+                )}
+                onClick={() => handleServiceSelect(service)}
+              >
+                <CardContent className="p-6">
+                  <div className="flex items-start justify-between">
+                    <div className="space-y-2">
+                      <CardTitle className="text-xl">{service.name}</CardTitle>
+                      <CardDescription>{service.description}</CardDescription>
+                      <div className="text-sm text-muted-foreground">
+                        Duration: {formatDuration(service.duration)}
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-xl font-bold">{formatCurrency(service.price)}</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+      ))}
     </div>
   );
 }

@@ -47,9 +47,9 @@ const routes = [
     href: "/dashboard/analytics",
   },
   {
-    label: "Messages",
+    label: "Calender",
     icon: MessageSquare,
-    href: "/dashboard/messages",
+    href: "/dashboard/calender",
   },
   {
     label: "Payments",

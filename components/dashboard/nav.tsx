@@ -15,6 +15,7 @@ import { Bell, Menu, LogOut } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { auth } from "@/lib/firebase";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 
 interface DashboardNavProps {
   onMenuClick: () => void;
@@ -71,8 +72,8 @@ export function DashboardNav({ onMenuClick }: DashboardNavProps) {
                 </div>
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
-              <DropdownMenuItem>
-                View Profile
+              <DropdownMenuItem asChild>
+                <Link href="/profile">View Profile</Link>
               </DropdownMenuItem>
               <DropdownMenuItem className="text-red-600" onClick={handleSignOut}>
                 <LogOut className="mr-2 h-4 w-4" />
