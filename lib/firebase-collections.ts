@@ -723,3 +723,121 @@ export async function deleteBlockedTime(id: string): Promise<void> {
   const blockedTimeRef = doc(getUserCollection('blockedTimes'), id);
   await deleteDoc(blockedTimeRef);
 }
+
+
+
+
+// Helper function to get services for a specific business
+export async function getBusinessServices(userId: string) {
+  try {
+    const servicesRef = collection(db, 'users', userId, 'services');
+    const snapshot = await getDocs(servicesRef);
+    return snapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    }));
+  } catch (error) {
+    console.error('Error fetching business services:', error);
+    throw error;
+  }
+}
+
+// Helper function to get staff members for a specific business
+export async function getBusinessStaff(userId: string) {
+  try {
+    const staffRef = collection(db, 'users', userId, 'staff');
+    const snapshot = await getDocs(staffRef);
+    return snapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    }));
+  } catch (error) {
+    console.error('Error fetching business staff:', error);
+    throw error;
+  }
+}
+
+// Helper function to get business settings
+export async function getBusinessSettings(userId: string) {
+  try {
+    const settingsDoc = await getDoc(doc(db, 'users', userId, 'settings', 'preferences'));
+    if (settingsDoc.exists()) {
+      return settingsDoc.data();
+    }
+    return null;
+  } catch (error) {
+    console.error('Error fetching business settings:', error);
+    throw error;
+  }
+}
+
+// Helper function to get business appointments
+export async function getBusinessAppointments(userId: string) {
+  try {
+    const appointmentsRef = collection(db, 'users', userId, 'appointments');
+    const snapshot = await getDocs(appointmentsRef);
+    return snapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    }));
+  } catch (error) {
+    console.error('Error fetching business appointments:', error);
+    throw error;
+  }
+}
+
+// Helper function to create a new appointment
+export async function createBusinessAppointment(userId: string, appointmentData: any) {
+  try {
+    const appointmentsRef = collection(db, 'users', userId, 'appointments');
+    const docRef = await addDoc(appointmentsRef, {
+      ...appointmentData,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp()
+    });
+    return {
+      id: docRef.id,
+      ...appointmentData
+    };
+  } catch (error) {
+    console.error('Error creating appointment:', error);
+    throw error;
+  }
+}
+
+// Helper function to get blocked times
+export async function getBusinessBlockedTimes(userId: string) {
+  try {
+    const blockedTimesRef = collection(db, 'users', userId, 'blockedTimes');
+    const snapshot = await getDocs(blockedTimesRef);
+    return snapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    }));
+  } catch (error) {
+    console.error('Error fetching blocked times:', error);
+    throw error;
+  }
+}
+
+export async function getBusinessInfo(userId: string) {
+  try {
+    const userDoc = await getDoc(doc(db, 'users', userId));
+    if (!userDoc.exists()) {
+      throw new Error('Business not found');
+    }
+
+    const settingsDoc = await getDoc(doc(db, 'users', userId, 'settings', 'preferences'));
+    const businessData = userDoc.data();
+    const settings = settingsDoc.exists() ? settingsDoc.data() : null;
+
+    return {
+      ...businessData,
+      settings,
+      id: userId
+    };
+  } catch (error) {
+    console.error('Error fetching business info:', error);
+    throw error;
+  }
+}

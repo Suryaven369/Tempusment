@@ -1,20 +1,13 @@
 "use client";
 
-import { initializeApp, getApps, type FirebaseApp } from 'firebase/app';
-import { 
-  getAuth, 
-  connectAuthEmulator, 
-  browserLocalPersistence, 
-  setPersistence,
-  type Auth
-} from 'firebase/auth';
+import { initializeApp, getApps } from 'firebase/app';
+import { getAuth, connectAuthEmulator, browserLocalPersistence, setPersistence } from 'firebase/auth';
 import { 
   getFirestore, 
   initializeFirestore,
   connectFirestoreEmulator,
   CACHE_SIZE_UNLIMITED,
-  enableIndexedDbPersistence,
-  type Firestore
+  enableIndexedDbPersistence
 } from 'firebase/firestore';
 
 const firebaseConfig = {
@@ -27,9 +20,9 @@ const firebaseConfig = {
   measurementId: "G-3WWLMG80Z8"
 };
 
-let app: FirebaseApp;
-let auth: Auth;
-let db: Firestore;
+let app;
+let auth;
+let db;
 
 async function initializeFirebase() {
   if (!getApps().length) {
@@ -82,6 +75,7 @@ async function initializeFirebase() {
     db = getFirestore(app);
   }
 }
+//new line 
 
 // Initialize Firebase immediately
 initializeFirebase();

@@ -11,6 +11,26 @@ export interface BusinessSettings {
   website: string;
   currency: string;
   timezone: string;
+  // Landing page settings
+  tagline: string;
+  about: string;
+  coverImage: string;
+  logo: string;
+  businessHours: {
+    monday: string;
+    tuesday: string;
+    wednesday: string;
+    thursday: string;
+    friday: string;
+    saturday: string;
+    sunday: string;
+  };
+  socialLinks: {
+    facebook?: string;
+    instagram?: string;
+    twitter?: string;
+    linkedin?: string;
+  };
 }
 
 export interface NotificationSettings {
@@ -54,6 +74,20 @@ const defaultSettings: UserSettings = {
     website: "",
     currency: "USD",
     timezone: "America/New_York",
+    tagline: "",
+    about: "",
+    coverImage: "",
+    logo: "",
+    businessHours: {
+      monday: "9:00 AM - 5:00 PM",
+      tuesday: "9:00 AM - 5:00 PM",
+      wednesday: "9:00 AM - 5:00 PM",
+      thursday: "9:00 AM - 5:00 PM",
+      friday: "9:00 AM - 5:00 PM",
+      saturday: "Closed",
+      sunday: "Closed"
+    },
+    socialLinks: {}
   },
   notifications: {
     emailNotifications: true,
