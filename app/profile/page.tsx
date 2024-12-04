@@ -1,17 +1,18 @@
 "use client";
 
-import { useState } from "react";
-import { Button } from "@/components/ui/button";
+import { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
 import { useSettings } from "@/hooks/use-settings";
 import { updateBusinessSettings } from "@/lib/firebase-settings";
 import { useAuth } from "@/hooks/use-auth";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Loader2 } from "lucide-react";
 
 export default function ProfilePage() {
   const { settings, loading } = useSettings();
@@ -40,7 +41,34 @@ export default function ProfilePage() {
     socialLinks: {}
   });
 
-  const handleSaveBusinessSettings = async () => {
+  // Update local state when settings are loaded
+  useEffect(() => {
+    if (settings?.business) {
+      setBusinessSettings(settings.business);
+    }
+  }, [settings]);
+
+  // Handle input changes
+  const handleInputChange = (field: string, value: string) => {
+    setBusinessSettings(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
+  // Handle nested object changes (social links, business hours)
+  const handleNestedChange = (parent: string, field: string, value: string) => {
+    setBusinessSettings(prev => ({
+      ...prev,
+      [parent]: {
+        ...prev[parent as keyof typeof prev],
+        [field]: value
+      }
+    }));
+  };
+
+  // Handle save
+  const handleSave = async () => {
     setSaving(true);
     try {
       await updateBusinessSettings(businessSettings);
@@ -62,7 +90,7 @@ export default function ProfilePage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-full">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        <Loader2 className="h-8 w-8 animate-spin" />
       </div>
     );
   }
@@ -100,7 +128,7 @@ export default function ProfilePage() {
                 <Label>Business Name</Label>
                 <Input
                   value={businessSettings.name}
-                  onChange={(e) => setBusinessSettings({ ...businessSettings, name: e.target.value })}
+                  onChange={(e) => handleInputChange('name', e.target.value)}
                 />
               </div>
               <div className="space-y-2">
@@ -108,28 +136,28 @@ export default function ProfilePage() {
                 <Input
                   type="email"
                   value={businessSettings.email}
-                  onChange={(e) => setBusinessSettings({ ...businessSettings, email: e.target.value })}
+                  onChange={(e) => handleInputChange('email', e.target.value)}
                 />
               </div>
               <div className="space-y-2">
                 <Label>Phone</Label>
                 <Input
                   value={businessSettings.phone}
-                  onChange={(e) => setBusinessSettings({ ...businessSettings, phone: e.target.value })}
+                  onChange={(e) => handleInputChange('phone', e.target.value)}
                 />
               </div>
               <div className="space-y-2">
                 <Label>Address</Label>
                 <Input
                   value={businessSettings.address}
-                  onChange={(e) => setBusinessSettings({ ...businessSettings, address: e.target.value })}
+                  onChange={(e) => handleInputChange('address', e.target.value)}
                 />
               </div>
               <div className="space-y-2">
                 <Label>Website</Label>
                 <Input
                   value={businessSettings.website}
-                  onChange={(e) => setBusinessSettings({ ...businessSettings, website: e.target.value })}
+                  onChange={(e) => handleInputChange('website', e.target.value)}
                 />
               </div>
             </CardContent>
@@ -147,7 +175,7 @@ export default function ProfilePage() {
                 <Label>Tagline</Label>
                 <Input
                   value={businessSettings.tagline}
-                  onChange={(e) => setBusinessSettings({ ...businessSettings, tagline: e.target.value })}
+                  onChange={(e) => handleInputChange('tagline', e.target.value)}
                   placeholder="A brief, catchy description of your business"
                 />
               </div>
@@ -155,7 +183,7 @@ export default function ProfilePage() {
                 <Label>About</Label>
                 <Textarea
                   value={businessSettings.about}
-                  onChange={(e) => setBusinessSettings({ ...businessSettings, about: e.target.value })}
+                  onChange={(e) => handleInputChange('about', e.target.value)}
                   placeholder="Tell your story and describe your business"
                   rows={5}
                 />
@@ -164,7 +192,7 @@ export default function ProfilePage() {
                 <Label>Cover Image URL</Label>
                 <Input
                   value={businessSettings.coverImage}
-                  onChange={(e) => setBusinessSettings({ ...businessSettings, coverImage: e.target.value })}
+                  onChange={(e) => handleInputChange('coverImage', e.target.value)}
                   placeholder="URL to your banner image"
                 />
               </div>
@@ -172,7 +200,7 @@ export default function ProfilePage() {
                 <Label>Logo URL</Label>
                 <Input
                   value={businessSettings.logo}
-                  onChange={(e) => setBusinessSettings({ ...businessSettings, logo: e.target.value })}
+                  onChange={(e) => handleInputChange('logo', e.target.value)}
                   placeholder="URL to your business logo"
                 />
               </div>
@@ -192,13 +220,7 @@ export default function ProfilePage() {
                   <Label className="capitalize">{day}</Label>
                   <Input
                     value={hours}
-                    onChange={(e) => setBusinessSettings({
-                      ...businessSettings,
-                      businessHours: {
-                        ...businessSettings.businessHours,
-                        [day]: e.target.value
-                      }
-                    })}
+                    onChange={(e) => handleNestedChange('businessHours', day, e.target.value)}
                     placeholder="e.g., 9:00 AM - 5:00 PM or Closed"
                   />
                 </div>
@@ -218,13 +240,7 @@ export default function ProfilePage() {
                 <Label>Facebook</Label>
                 <Input
                   value={businessSettings.socialLinks?.facebook || ""}
-                  onChange={(e) => setBusinessSettings({
-                    ...businessSettings,
-                    socialLinks: {
-                      ...businessSettings.socialLinks,
-                      facebook: e.target.value
-                    }
-                  })}
+                  onChange={(e) => handleNestedChange('socialLinks', 'facebook', e.target.value)}
                   placeholder="Facebook profile URL"
                 />
               </div>
@@ -232,13 +248,7 @@ export default function ProfilePage() {
                 <Label>Instagram</Label>
                 <Input
                   value={businessSettings.socialLinks?.instagram || ""}
-                  onChange={(e) => setBusinessSettings({
-                    ...businessSettings,
-                    socialLinks: {
-                      ...businessSettings.socialLinks,
-                      instagram: e.target.value
-                    }
-                  })}
+                  onChange={(e) => handleNestedChange('socialLinks', 'instagram', e.target.value)}
                   placeholder="Instagram profile URL"
                 />
               </div>
@@ -246,13 +256,7 @@ export default function ProfilePage() {
                 <Label>Twitter</Label>
                 <Input
                   value={businessSettings.socialLinks?.twitter || ""}
-                  onChange={(e) => setBusinessSettings({
-                    ...businessSettings,
-                    socialLinks: {
-                      ...businessSettings.socialLinks,
-                      twitter: e.target.value
-                    }
-                  })}
+                  onChange={(e) => handleNestedChange('socialLinks', 'twitter', e.target.value)}
                   placeholder="Twitter profile URL"
                 />
               </div>
@@ -260,13 +264,7 @@ export default function ProfilePage() {
                 <Label>LinkedIn</Label>
                 <Input
                   value={businessSettings.socialLinks?.linkedin || ""}
-                  onChange={(e) => setBusinessSettings({
-                    ...businessSettings,
-                    socialLinks: {
-                      ...businessSettings.socialLinks,
-                      linkedin: e.target.value
-                    }
-                  })}
+                  onChange={(e) => handleNestedChange('socialLinks', 'linkedin', e.target.value)}
                   placeholder="LinkedIn profile URL"
                 />
               </div>
@@ -275,13 +273,20 @@ export default function ProfilePage() {
         </TabsContent>
       </Tabs>
 
-      <div className="mt-6">
+      <div className="mt-6 flex justify-end">
         <Button 
-          onClick={handleSaveBusinessSettings} 
+          onClick={handleSave} 
           disabled={saving}
-          className="w-full"
+          className="w-full md:w-auto"
         >
-          {saving ? "Saving..." : "Save Changes"}
+          {saving ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Saving Changes...
+            </>
+          ) : (
+            'Save Changes'
+          )}
         </Button>
       </div>
     </div>
