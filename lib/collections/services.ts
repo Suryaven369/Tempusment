@@ -1,13 +1,18 @@
 "use client";
 
-import { collection, getDocs, doc, addDoc, updateDoc, deleteDoc, serverTimestamp } from 'firebase/firestore';
+import { getDocs, doc, addDoc, updateDoc, deleteDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../firebase';
 import { getBusinessCollection } from '../firebase-utils';
 import type { Service } from '@/types';
 
-export async function getBusinessServices(userId: string): Promise<Service[]> {
+export async function getBusinessServices(businessId: string): Promise<Service[]> {
+  if (!businessId) {
+    console.error('Business ID is required');
+    return [];
+  }
+
   try {
-    const servicesRef = getBusinessCollection(userId, 'services');
+    const servicesRef = getBusinessCollection(businessId, 'services');
     const snapshot = await getDocs(servicesRef);
     return snapshot.docs.map(doc => ({
       id: doc.id,
@@ -15,13 +20,13 @@ export async function getBusinessServices(userId: string): Promise<Service[]> {
     } as Service));
   } catch (error) {
     console.error('Error fetching business services:', error);
-    throw error;
+    return [];
   }
 }
 
-export async function createService(userId: string, data: Partial<Service>): Promise<Service> {
+export async function createService(businessId: string, data: Partial<Service>): Promise<Service> {
   try {
-    const servicesRef = getBusinessCollection(userId, 'services');
+    const servicesRef = getBusinessCollection(businessId, 'services');
     const docRef = await addDoc(servicesRef, {
       ...data,
       createdAt: serverTimestamp(),
@@ -34,9 +39,9 @@ export async function createService(userId: string, data: Partial<Service>): Pro
   }
 }
 
-export async function updateService(userId: string, serviceId: string, data: Partial<Service>): Promise<Service> {
+export async function updateService(businessId: string, serviceId: string, data: Partial<Service>): Promise<Service> {
   try {
-    const serviceRef = doc(getBusinessCollection(userId, 'services'), serviceId);
+    const serviceRef = doc(db, 'users', businessId, 'services', serviceId);
     await updateDoc(serviceRef, {
       ...data,
       updatedAt: serverTimestamp()
@@ -48,9 +53,9 @@ export async function updateService(userId: string, serviceId: string, data: Par
   }
 }
 
-export async function deleteService(userId: string, serviceId: string): Promise<void> {
+export async function deleteService(businessId: string, serviceId: string): Promise<void> {
   try {
-    const serviceRef = doc(getBusinessCollection(userId, 'services'), serviceId);
+    const serviceRef = doc(db, 'users', businessId, 'services', serviceId);
     await deleteDoc(serviceRef);
   } catch (error) {
     console.error('Error deleting service:', error);

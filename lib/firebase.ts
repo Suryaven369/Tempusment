@@ -1,13 +1,18 @@
 "use client";
 
 import { initializeApp, getApps } from 'firebase/app';
-import { getAuth, connectAuthEmulator, browserLocalPersistence, setPersistence } from 'firebase/auth';
 import { 
-  getFirestore, 
+  getAuth, 
+  connectAuthEmulator, 
+  browserLocalPersistence, 
+  setPersistence,
+  onAuthStateChanged
+} from 'firebase/auth';
+import { 
   initializeFirestore,
-  connectFirestoreEmulator,
-  CACHE_SIZE_UNLIMITED,
-  enableIndexedDbPersistence
+  persistentLocalCache,
+  persistentMultipleTabManager,
+  connectFirestoreEmulator
 } from 'firebase/firestore';
 
 const firebaseConfig = {
@@ -20,64 +25,30 @@ const firebaseConfig = {
   measurementId: "G-3WWLMG80Z8"
 };
 
-let app;
-let auth;
-let db;
+// Initialize Firebase
+const app = getApps().length ? getApps()[0] : initializeApp(firebaseConfig);
 
-async function initializeFirebase() {
-  if (!getApps().length) {
-    try {
-      // Initialize Firebase app
-      app = initializeApp(firebaseConfig);
+// Initialize Firestore with persistence
+const db = initializeFirestore(app, {
+  localCache: persistentLocalCache({
+    tabManager: persistentMultipleTabManager()
+  })
+});
 
-      // Initialize Auth with persistence
-      auth = getAuth(app);
-      await setPersistence(auth, browserLocalPersistence);
+const auth = getAuth(app);
 
-      // Initialize Firestore with settings for better offline support
-      db = initializeFirestore(app, {
-        cacheSizeBytes: CACHE_SIZE_UNLIMITED,
-        experimentalForceLongPolling: true,
-      });
-
-      // Enable offline persistence for Firestore
-      if (typeof window !== 'undefined') {
-        try {
-          await enableIndexedDbPersistence(db);
-        } catch (err: any) {
-          if (err.code === 'failed-precondition') {
-            console.warn('Multiple tabs open, persistence enabled in first tab only');
-          } else if (err.code === 'unimplemented') {
-            console.warn('Browser doesn\'t support persistence');
-          }
-        }
-      }
-
-      // Only initialize emulators if explicitly enabled
-      if (process.env.NEXT_PUBLIC_USE_FIREBASE_EMULATOR === 'true') {
-        connectAuthEmulator(auth, 'http://localhost:9099', { disableWarnings: true });
-        connectFirestoreEmulator(db, 'localhost', 8080);
-      }
-    } catch (error) {
-      console.error('Error initializing Firebase:', error);
-      if (!app) app = initializeApp(firebaseConfig);
-      if (!auth) auth = getAuth(app);
-      if (!db) {
-        db = initializeFirestore(app, {
-          cacheSizeBytes: CACHE_SIZE_UNLIMITED,
-          experimentalForceLongPolling: true,
-        });
-      }
-    }
-  } else {
-    app = getApps()[0];
-    auth = getAuth(app);
-    db = getFirestore(app);
-  }
+// Set up persistence
+if (typeof window !== 'undefined') {
+  setPersistence(auth, browserLocalPersistence)
+    .catch((error) => {
+      console.error("Error setting auth persistence:", error);
+    });
 }
-//new line 
 
-// Initialize Firebase immediately
-initializeFirebase();
+// Set up emulators for development
+if (process.env.NEXT_PUBLIC_USE_FIREBASE_EMULATOR === 'true') {
+  connectAuthEmulator(auth, 'http://localhost:9099', { disableWarnings: true });
+  connectFirestoreEmulator(db, 'localhost', 8080);
+}
 
 export { app, auth, db };

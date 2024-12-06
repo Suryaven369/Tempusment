@@ -33,7 +33,7 @@ export function getUserCollection(collectionName: string) {
   return collection(db, 'users', user.uid, collectionName);
 }
 
-export function getBusinessCollection(userId: string, collectionName: string) {
-  if (!userId) throw new Error('Business ID is required');
-  return collection(db, 'users', userId, collectionName);
+export function getBusinessCollection(businessId: string, collectionName: string) {
+  if (!businessId) throw new Error('Business ID is required');
+  return collection(db, 'users', businessId, collectionName);
 }
