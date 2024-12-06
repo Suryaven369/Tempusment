@@ -18,6 +18,8 @@ export function ServicesSection({ userId, onServiceSelect }: ServicesSectionProp
 
   useEffect(() => {
     async function fetchServices() {
+      if (!userId) return;
+      
       try {
         const fetchedServices = await getBusinessServices(userId);
         setServices(fetchedServices.filter(service => service.active));
@@ -28,9 +30,7 @@ export function ServicesSection({ userId, onServiceSelect }: ServicesSectionProp
       }
     }
 
-    if (userId) {
-      fetchServices();
-    }
+    fetchServices();
   }, [userId]);
 
   if (loading) {
@@ -68,7 +68,7 @@ export function ServicesSection({ userId, onServiceSelect }: ServicesSectionProp
                   </div>
                   <div className="flex items-center font-bold text-lg">
                     <DollarSign className="mr-1 h-4 w-4" />
-                    {service.price}
+                    ${service.price}
                   </div>
                 </div>
                 <Button 
