@@ -32,6 +32,10 @@ export function Footer({ business }: FooterProps) {
     return null;
   }
 
+  if (pathname.startsWith('/business')) {
+    return null;
+  }
+
   // Use business social links if available, otherwise use defaults
   const socialLinks = business?.socialLinks || defaultSocialLinks;
 
