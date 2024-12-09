@@ -11,6 +11,7 @@ import {
   orderBy,
   getDocs,
   getDoc,
+  onSnapshot,
   limit,
   serverTimestamp,
   Timestamp,
@@ -144,49 +145,86 @@ export async function getRecentAppointments(): Promise<Appointment[]> {
 }
 
 // Create Appointment
-export async function createAppointment(data: Partial<Appointment>): Promise<Appointment> {
-  try {
-    if (!auth.currentUser) {
-      throw new Error('Authentication required');
-    }
+export async function createAppointment(appointmentData: Partial<Appointment>): Promise<Appointment> {
+  const user = auth.currentUser;
+  if (!user) throw new Error('Authentication required');
 
-    const appointmentsRef = getUserCollection('appointments');
-    const preparedData = prepareForFirestore({
-      ...data,
-      status: data.status || 'scheduled',
+  try {
+    const appointmentsRef = collection(db, 'users', user.uid, 'appointments');
+    const docRef = await addDoc(appointmentsRef, {
+      ...appointmentData,
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp()
     });
 
-    const docRef = await addDoc(appointmentsRef, preparedData);
-    const docSnap = await getDoc(docRef);
-    
-    return convertDocument<Appointment>(docSnap);
+    return {
+      id: docRef.id,
+      ...appointmentData
+    } as Appointment;
   } catch (error) {
     console.error('Error creating appointment:', error);
     throw error;
   }
 }
 
-// Update Appointment
-export async function updateAppointment(id: string, data: Partial<Appointment>): Promise<void> {
-  try {
-    if (!auth.currentUser) {
-      throw new Error('Authentication required');
-    }
 
-    const appointmentRef = doc(getUserCollection('appointments'), id);
-    const preparedData = prepareForFirestore({
+// Update Appointment
+export async function updateAppointment(appointmentId: string, data: Partial<Appointment>): Promise<Appointment> {
+  const user = auth.currentUser;
+  if (!user) throw new Error('Authentication required');
+
+  try {
+    const appointmentRef = doc(db, 'users', user.uid, 'appointments', appointmentId);
+    await updateDoc(appointmentRef, {
       ...data,
       updatedAt: serverTimestamp()
     });
 
-    await updateDoc(appointmentRef, preparedData);
+    return {
+      id: appointmentId,
+      ...data
+    } as Appointment;
   } catch (error) {
     console.error('Error updating appointment:', error);
     throw error;
   }
 }
+
+//Subscribe
+export function subscribeToAppointments(
+  callback: (appointments: Appointment[]) => void,
+  onError?: (error: Error) => void
+) {
+  const user = auth.currentUser;
+  if (!user) throw new Error('Authentication required');
+
+  const appointmentsRef = collection(db, 'users', user.uid, 'appointments');
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const q = query(
+    appointmentsRef,
+    where('date', '>=', today.toISOString().split('T')[0]),
+    orderBy('date', 'asc'),
+    orderBy('time', 'asc')
+  );
+
+  return onSnapshot(
+    q,
+    (snapshot) => {
+      const appointments = snapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      })) as Appointment[];
+      callback(appointments);
+    },
+    (error) => {
+      console.error('Error in appointments subscription:', error);
+      if (onError) onError(error);
+    }
+  );
+}
+
 
 // Delete Appointment
 export async function deleteAppointment(id: string): Promise<void> {

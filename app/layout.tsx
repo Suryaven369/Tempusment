@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import { ThemeProvider } from '@/components/theme-provider';
 import { Toaster } from '@/components/ui/toaster';
+import { MainNav } from '@/components/main-nav';
 import { Footer } from '@/components/landing/footer';
 import './globals.css';
 
@@ -26,10 +27,9 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          {children}
-         
-            <Footer />
-          
+          <div className="flex min-h-screen flex-col">
+            {children}
+          </div>
           <Toaster />
         </ThemeProvider>
       </body>
