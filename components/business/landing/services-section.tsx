@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Clock, DollarSign } from "lucide-react";
+import { ServiceBookingDialog } from "@/components/booking/service-booking-dialog";
 import { getBusinessServices } from "@/lib/collections/services";
 import type { Service } from "@/types";
 
@@ -71,12 +72,15 @@ export function ServicesSection({ userId, onServiceSelect }: ServicesSectionProp
                     ${service.price}
                   </div>
                 </div>
-                <Button 
-                  className="w-full" 
-                  onClick={() => onServiceSelect(service)}
-                >
-                  Book Now
-                </Button>
+                <ServiceBookingDialog 
+                  service={service}
+                  userId={userId}
+                  trigger={
+                    <button className="w-full bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2 rounded-md">
+                      Book Now
+                    </button>
+                  }
+                />
               </CardContent>
             </Card>
           ))}

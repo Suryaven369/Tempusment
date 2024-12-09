@@ -17,13 +17,12 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { useToast } from "@/components/ui/use-toast";
+import { useBooking } from "@/lib/contexts/booking-context";
+import { createAppointment } from "@/lib/firebase-collections";
+import { useRouter } from "next/navigation";
 
 interface CustomerFormProps {
   userId: string;
-  onBack: () => void;
-  bookingSettings?: {
-    requireApproval: boolean;
-  };
 }
 
 const formSchema = z.object({
@@ -33,9 +32,12 @@ const formSchema = z.object({
   notes: z.string().optional(),
 });
 
-export function CustomerForm({ userId, onBack, bookingSettings }: CustomerFormProps) {
+export function CustomerForm({ userId }: CustomerFormProps) {
   const [loading, setLoading] = useState(false);
+  const { state, dispatch } = useBooking();
   const { toast } = useToast();
+  const router = useRouter();
+
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -47,22 +49,48 @@ export function CustomerForm({ userId, onBack, bookingSettings }: CustomerFormPr
   });
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
-    setLoading(true);
-    try {
-      // TODO: Implement booking submission
-      await new Promise((resolve) => setTimeout(resolve, 2000));
-      toast({
-        title: bookingSettings?.requireApproval
-          ? "Booking Request Submitted"
-          : "Appointment Confirmed",
-        description: bookingSettings?.requireApproval
-          ? "We'll review your request and get back to you soon."
-          : "You'll receive a confirmation email shortly.",
-      });
-    } catch (error) {
+    if (!state.selectedService || !state.selectedStaff || !state.selectedDate || !state.selectedTime) {
       toast({
         title: "Error",
-        description: "Failed to submit booking. Please try again.",
+        description: "Please complete all booking steps before proceeding",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const appointment = await createAppointment({
+        clientName: values.name,
+        clientEmail: values.email,
+        clientPhone: values.phone,
+        serviceId: state.selectedService.id!,
+        serviceName: state.selectedService.name,
+        staffId: state.selectedStaff.id!,
+        staffName: state.selectedStaff.name,
+        date: state.selectedDate,
+        time: state.selectedTime,
+        duration: state.selectedService.duration,
+        price: state.selectedService.price,
+        status: "scheduled",
+        paymentStatus: "pending",
+        notes: values.notes,
+      });
+
+      toast({
+        title: "Success",
+        description: "Your appointment has been scheduled successfully.",
+      });
+
+      // Reset booking state
+      dispatch({ type: "RESET" });
+      
+      // Redirect to confirmation page
+      router.push(`/book/${userId}/confirmation/${appointment.id}`);
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to schedule appointment. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -133,7 +161,11 @@ export function CustomerForm({ userId, onBack, bookingSettings }: CustomerFormPr
         />
 
         <div className="flex items-center gap-4">
-          <Button type="button" variant="outline" onClick={onBack}>
+          <Button 
+            type="button" 
+            variant="outline" 
+            onClick={() => dispatch({ type: "PREVIOUS_STEP" })}
+          >
             <ArrowLeft className="mr-2 h-4 w-4" />
             Back
           </Button>
@@ -141,7 +173,7 @@ export function CustomerForm({ userId, onBack, bookingSettings }: CustomerFormPr
             {loading ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Submitting...
+                Scheduling...
               </>
             ) : (
               "Complete Booking"

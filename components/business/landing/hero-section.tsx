@@ -35,12 +35,15 @@ export function HeroSection({ business, onBookNow }: HeroSectionProps) {
               {settings.tagline}
             </p>
           )}
+
+          {settings?.about && (
+            <p className="mx-auto mt-3 max-w-md text-base text-muted-foreground sm:text-lg md:mt-5 md:max-w-3xl md:text-xl">
+              {settings.about}
+            </p>
+          )}
           
           <div className="mx-auto mt-10 max-w-md sm:flex sm:justify-center md:mt-12">
-            <Button size="lg" onClick={onBookNow} className="w-full sm:w-auto">
-              <Calendar className="mr-2 h-5 w-5" />
-              Book Now
-            </Button>
+            
           </div>
         </div>
       </div>
