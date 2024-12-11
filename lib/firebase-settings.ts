@@ -3,6 +3,10 @@
 import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
 import { db, auth } from './firebase';
 
+export interface AppearanceSettings {
+  theme: 'light' | 'dark' | 'system';
+}
+
 export interface BusinessSettings {
   name: string;
   email: string;
@@ -58,6 +62,7 @@ export interface SecuritySettings {
 
 export interface UserSettings {
   business: BusinessSettings;
+  appearance: AppearanceSettings;
   notifications: NotificationSettings;
   booking: BookingSettings;
   security: SecuritySettings;
@@ -221,6 +226,23 @@ export async function updateThemeSetting(theme: string): Promise<void> {
     });
   } catch (error) {
     console.error('Error updating theme setting:', error);
+    throw error;
+  }
+}
+
+
+export async function updateAppearanceSettings(settings: AppearanceSettings): Promise<void> {
+  const user = auth.currentUser;
+  if (!user) throw new Error('Authentication required');
+
+  try {
+    const settingsRef = doc(db, 'users', user.uid, 'settings', 'preferences');
+    await updateDoc(settingsRef, {
+      appearance: settings,
+      updatedAt: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('Error updating appearance settings:', error);
     throw error;
   }
 }

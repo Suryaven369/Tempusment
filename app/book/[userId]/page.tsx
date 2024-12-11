@@ -70,6 +70,7 @@ export default function BookingPage({ params }: BookingPageProps) {
       <BusinessNav 
         businessName={businessInfo.name} 
         userId={params.userId}
+        logo={businessInfo.logo}
       />
       <main className="flex-1">
         <HeroSection business={businessInfo} />

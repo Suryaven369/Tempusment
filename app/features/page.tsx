@@ -1,5 +1,6 @@
 import { MainNav } from '@/components/main-nav';
 import { Features } from '@/components/landing/features';
+import { Footer } from '@/components/landing/footer';
 
 export default function FeaturesPage() {
   return (
@@ -13,6 +14,8 @@ export default function FeaturesPage() {
           </p>
         </div>
         <Features />
+        <Footer />
+
       </div>
     </main>
   );

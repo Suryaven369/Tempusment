@@ -3,7 +3,7 @@
 import { LandingHero } from '@/components/landing/hero';
 import { Features } from '@/components/landing/features';
 import { MainNav } from '@/components/main-nav';
-//import { Footer } from '@/components/landing/footer';
+import { Footer } from '@/components/landing/footer';
 
 export default function Home() {
   return (
@@ -11,6 +11,7 @@ export default function Home() {
       <MainNav />
       <LandingHero />
       <Features />
+      <Footer />
     
     </main>
   );

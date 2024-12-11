@@ -1,5 +1,6 @@
 import { MainNav } from '@/components/main-nav';
 import { Calendar, Users2, Building2 } from 'lucide-react';
+import { Footer } from '@/components/landing/footer';
 
 const stats = [
   {
@@ -61,6 +62,7 @@ export default function AboutPage() {
           </div>
         </div>
       </div>
+      <Footer />
     </main>
   );
 }

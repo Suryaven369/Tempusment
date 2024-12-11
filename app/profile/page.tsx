@@ -12,13 +12,15 @@ import { useSettings } from "@/hooks/use-settings";
 import { updateBusinessSettings } from "@/lib/firebase-settings";
 import { useAuth } from "@/hooks/use-auth";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Loader2 } from "lucide-react";
+import { Loader2, ArrowLeft } from "lucide-react";
+import { useRouter } from "next/navigation";
 
 export default function ProfilePage() {
   const { settings, loading } = useSettings();
   const [saving, setSaving] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
+  const router = useRouter();
   const [businessSettings, setBusinessSettings] = useState(settings?.business || {
     name: "",
     email: "",
@@ -97,6 +99,17 @@ export default function ProfilePage() {
 
   return (
     <div className="container max-w-4xl mx-auto py-10">
+      <div className="flex items-center gap-4 mb-6">
+        <Button 
+          variant="ghost" 
+          onClick={() => router.back()}
+          className="flex items-center gap-2"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Back
+        </Button>
+      </div>
+
       <div className="flex items-center gap-6 mb-8">
         <Avatar className="h-24 w-24">
           <AvatarFallback className="text-4xl">

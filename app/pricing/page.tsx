@@ -2,6 +2,7 @@ import { MainNav } from '@/components/main-nav';
 import { Button } from '@/components/ui/button';
 import { Check } from 'lucide-react';
 import Link from 'next/link';
+import { Footer } from '@/components/landing/footer';
 
 const plans = [
   {
@@ -95,6 +96,7 @@ export default function PricingPage() {
           ))}
         </div>
       </div>
+      <Footer />
     </main>
   );
 }
