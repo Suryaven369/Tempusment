@@ -10,6 +10,7 @@ import {
   Shield,
 } from "lucide-react";
 
+
 const features = [
   {
     name: "Smart Scheduling",
@@ -83,12 +84,17 @@ export function Features() {
                 </dt>
                 <dd className="mt-4 flex flex-auto flex-col text-base leading-7 text-muted-foreground">
                   <p className="flex-auto">{feature.description}</p>
+                  
                 </dd>
               </div>
+              
             ))}
           </dl>
         </div>
       </div>
+      
     </div>
+    
+
   );
 }

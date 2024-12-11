@@ -10,9 +10,23 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { useAuth } from "@/hooks/use-auth";
+import { updateAppearanceSettings } from "@/lib/firebase-settings";
 
 export function ModeToggle() {
-  const { setTheme } = useTheme();
+  const { setTheme, theme } = useTheme();
+  const { user } = useAuth();
+
+  const handleThemeChange = async (newTheme: string) => {
+    setTheme(newTheme);
+    if (user) {
+      try {
+        await updateAppearanceSettings({ theme: newTheme as 'light' | 'dark' | 'system' });
+      } catch (error) {
+        console.error('Error saving theme preference:', error);
+      }
+    }
+  };
 
   return (
     <DropdownMenu>
@@ -24,13 +38,13 @@ export function ModeToggle() {
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
-        <DropdownMenuItem onClick={() => setTheme("light")}>
+        <DropdownMenuItem onClick={() => handleThemeChange("light")}>
           Light
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => setTheme("dark")}>
+        <DropdownMenuItem onClick={() => handleThemeChange("dark")}>
           Dark
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => setTheme("system")}>
+        <DropdownMenuItem onClick={() => handleThemeChange("system")}>
           System
         </DropdownMenuItem>
       </DropdownMenuContent>
